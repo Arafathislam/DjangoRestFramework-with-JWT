@@ -3,7 +3,7 @@ from account.models import User
 from django.utils.encoding import smart_str, force_bytes, DjangoUnicodeDecodeError
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-
+from account.utils import Util
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
   # We are writing this becoz we need confirm password field in our Registratin Request
@@ -79,7 +79,15 @@ class SendPasswordResetEmailSerializer(serializers.Serializer):
       print('Password Reset Link :',link)
 
       # send email code here
+      body='Click Following Link Reset Your Password'+link
+      data={
+        'subject':'Reset Your password',
+        'body':body,
+        'to_email':user.email
 
+      }
+
+      Util.send_email(data)
 
       return attrs
 
@@ -99,14 +107,14 @@ class UserPasswordResetSerializer(serializers.Serializer):
     try:
       password=attrs.get('password')
       password2=attrs.get('password2')
-      uid=self.context.get('user')
+      uid=self.context.get('uid')
       token=self.context.get('token')
 
       if password != password2:
         raise serializers.ValidationError("Password and Confirm Password doesn't match")
       
       id=smart_str(urlsafe_base64_decode(uid))
-      user=User.bojects.get(id=id)
+      user=User.objects.get(id=id)
       if not PasswordResetTokenGenerator().check_token(user,token):
         raise ValidationError('Token is not Valid or Expired')
         
